@@ -1,5 +1,6 @@
 import pandas as pd
 import pdb
+import csv
 import json
 import numpy as np
 from gensim.utils import simple_preprocess as preprocess
@@ -62,20 +63,52 @@ query_result = [(doc_score, podcasts[doc_position]) for doc_position, doc_score 
 
 
 def find_top_3(i, bow):
-    product = products[i]
+    product = products_raw[i]
     model = tfidf[bow]
     sims = podcast_index[model]
     sims = sorted(enumerate(sims), key=lambda item: -item[1])
     return {
         "product": product,
         "matches": [
-            (doc_score, podcasts[doc_position]) for doc_position, doc_score in sims
+            (doc_score, podcasts_raw[doc_position]) for doc_position, doc_score in sims
         ][0:3],
     }
 
 
 # compute top 3 podcasts for all products
 product_top3_podcasts = [find_top_3(i, bow) for i, bow in enumerate(product_corpus)]
+
+
+with open("top3_podcasts.csv", mode="w") as file:
+    writer = csv.writer(file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(
+        [
+            "name",
+            "sku",
+            "description",
+            "long description",
+            "relevance score",
+            "podcast host",
+            "podcast title",
+            "podcast transcript",
+        ]
+    )
+    for x in product_top3_podcasts:
+        p = x["product"]
+        matches = x["matches"]
+        for score, match in matches:
+            writer.writerow(
+                [
+                    p["ProdName"],
+                    p["SKU"],
+                    p["Desc"],
+                    p["LongDesc"],
+                    score,
+                    match["-"],
+                    match["Title"],
+                    match["transcripts"],
+                ]
+            )
 
 
 # pdb.set_trace()
